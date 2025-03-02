@@ -16,6 +16,7 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 
+import io.vavr.control.Try;
 import lombok.Cleanup;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,42 +33,34 @@ public class SSH {
     Optional.ofNullable(session)
         .filter(Objects::nonNull)
         .filter(Session::isConnected)
-        .ifPresent(e -> {
-          try {
-            e.disconnect();
-            log.info("Session disconnected.");
-          } catch (Exception ex) {
-            log.error(ex.getMessage(), exception);
-          }
-        });
+        .ifPresent(e -> Try.run(() -> {
+          e.disconnect();
+          log.info("Session disconnected.");
+        })
+            .onFailure(ex -> log.error(ex.getMessage(), ex)));
   }
 
   public void onFailSftp(Exception exception, ChannelSftp channelSftp) {
+
     exception.printStackTrace();
     Optional.ofNullable(channelSftp)
         .filter(ChannelSftp::isConnected)
-        .ifPresent(e -> {
-          try {
-            e.disconnect();
-            log.info("Sftp Channel disconnected.");
-          } catch (Exception ex) {
-            log.error(ex.getMessage(), exception);
-          }
-        });
+        .ifPresent(e -> Try.run(() -> {
+          e.disconnect();
+          log.info("Sftp Channel disconnected.");
+        })
+            .onFailure(ex -> log.error(ex.getMessage(), ex)));
   }
 
   public void onFailExec(Exception exception, ChannelExec channelExec) {
     exception.printStackTrace();
     Optional.ofNullable(channelExec)
         .filter(ChannelExec::isConnected)
-        .ifPresent(e -> {
-          try {
-            e.disconnect();
-            log.info("Sftp Channel disconnected.");
-          } catch (Exception ex) {
-            log.error(ex.getMessage(), exception);
-          }
-        });
+        .ifPresent(e -> Try.run(() -> {
+          e.disconnect();
+          log.info("Exec Channel disconnected.");
+        })
+            .onFailure(ex -> log.error(ex.getMessage(), ex)));
   }
 
   public Session getSession() {
