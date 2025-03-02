@@ -17,10 +17,14 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 
 import lombok.Cleanup;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@RequiredArgsConstructor
 public class SSH {
+
+  private final SSHParams sshParams;
 
   public void onFailSession(Exception exception, Session session) {
 
@@ -66,7 +70,7 @@ public class SSH {
         });
   }
 
-  public Session getSession(SSHParams sshParams) {
+  public Session getSession() {
     try {
       JSch jsch = new JSch();
       Session session = jsch.getSession(sshParams.getPassword(), sshParams.getRemoteHost(), sshParams.getPort());
@@ -82,12 +86,12 @@ public class SSH {
 
   }
 
-  public void execute(SSHParams sshParams, Consumer<Session>... consumers) {
+  public void execute(Consumer<Session>... consumers) {
 
     Session session = null;
     try {
 
-      session = getSession(sshParams);
+      session = getSession();
 
       for (Consumer<Session> consumer : consumers) {
         consumer.accept(session);

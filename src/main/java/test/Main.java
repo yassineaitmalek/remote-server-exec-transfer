@@ -25,15 +25,16 @@ public class Main {
 
   public static void main(String[] args) {
 
-    SSH ssh = new SSH();
+    SSHParams sshParams = new SSHParams(USERNAME, REMOTE_HOST, PORT, PASSWORD);
+
+    SSH ssh = new SSH(sshParams);
 
     Consumer<Session> executeCommand = session -> ssh.executeCommand(session, COMMAND);
 
     Consumer<Session> transferFile = session -> FILE_NAMES.stream()
         .forEach(e -> ssh.transferFileWithProgress(session, REMOTE_FOLDER_PATH, LOCAL_FILE_PATH, e));
 
-    SSHParams sshParams = new SSHParams(USERNAME, REMOTE_HOST, PORT, PASSWORD);
-    ssh.execute(sshParams, executeCommand, transferFile);
+    ssh.execute(executeCommand, transferFile);
   }
 
 }
