@@ -81,7 +81,7 @@ public class SSH {
       return session;
     } catch (Exception e) {
       log.error(e.getMessage(), e);
-      return null;
+      System.exit(1);
     }
 
   }
