@@ -1,0 +1,46 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "TEST",
+      "request": "launch",
+      "mainClass": "test.TEST",
+      "projectName": "test"
+    },
+    {
+      "type": "java",
+      "name": "RibCalculator",
+      "request": "launch",
+      "mainClass": "test.RibCalculator",
+      "projectName": "test"
+    },
+    {
+      "type": "java",
+      "name": "Donut",
+      "request": "launch",
+      "mainClass": "test.Donut",
+      "projectName": "test"
+    },
+    {
+      "type": "java",
+      "name": "Main",
+      "request": "launch",
+      "mainClass": "test.Main",
+      "projectName": "test"
+    },
+    {
+      "type": "java",
+      "name": "TextToSpeechExample2",
+      "request": "launch",
+      "mainClass": "test.TextToSpeechExample2",
+      "projectName": "test"
+    },
+    {
+      "type": "java",
+      "name": "Run with AppMap",
+      "request": "launch",
+      "mainClass": "",
+      "vmArgs": "-javaagent:${userHome}\\.appmap\\lib\\java\\appmap.jar"
+    }
+  ]
+}
