@@ -3,51 +3,37 @@ package test;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
 
+import lombok.Cleanup;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class SSH {
-
-  private static final String REMOTE_HOST = "host";
-  private static final int PORT = 22;
-  private static final String USERNAME = "a";
-  private static final String PASSWORD = "a";
-  private static final String COMMAND = "sleep 30"; // Replace with the actual command
-  private static final String REMOTE_FOLDER_PATH = "/path/to/remote/folder";
-  private static final String LOCAL_FILE_PATH = "/path/to/local/folder";
-
-  private static final List<String> FILE_NAMES = Arrays.asList(
-      "jenkins1.msi",
-      "jenkins2.msi",
-      "jenkins3.msi");
 
   public void onFailSession(Exception exception, Session session) {
 
     exception.printStackTrace();
-
     Optional.ofNullable(session)
         .filter(Objects::nonNull)
         .filter(Session::isConnected)
         .ifPresent(e -> {
           try {
             e.disconnect();
-            System.out.println("Session disconnected.");
+            log.info("Session disconnected.");
           } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error(ex.getMessage(), exception);
           }
         });
   }
@@ -59,9 +45,9 @@ public class SSH {
         .ifPresent(e -> {
           try {
             e.disconnect();
-            System.out.println("Sftp Channel disconnected.");
+            log.info("Sftp Channel disconnected.");
           } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error(ex.getMessage(), exception);
           }
         });
   }
@@ -73,57 +59,53 @@ public class SSH {
         .ifPresent(e -> {
           try {
             e.disconnect();
-            System.out.println("Sftp Channel disconnected.");
+            log.info("Sftp Channel disconnected.");
           } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error(ex.getMessage(), exception);
           }
         });
   }
 
-  public Session getSession() {
+  public Session getSession(SSHParams sshParams) {
     try {
       JSch jsch = new JSch();
-      Session session = jsch.getSession(USERNAME, REMOTE_HOST, PORT);
-      session.setPassword(PASSWORD);
+      Session session = jsch.getSession(sshParams.getPassword(), sshParams.getRemoteHost(), sshParams.getPort());
+      session.setPassword(sshParams.getPassword());
       session.setConfig("StrictHostKeyChecking", "no");
       session.connect();
-      System.out.println("Connected to the server.");
+      log.info("Connected to the server.");
       return session;
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error(e.getMessage(), e);
       return null;
     }
 
   }
 
-  public void execute() {
+  public void execute(SSHParams sshParams, Consumer<Session>... consumers) {
 
     Session session = null;
     try {
-      // Establish SSH session
 
-      session = getSession();
+      session = getSession(sshParams);
 
-      // Execute command and wait for completion
-      executeCommand(session, COMMAND);
-
-      for (String fileName : FILE_NAMES) {
-        transferFileWithProgress(session, REMOTE_FOLDER_PATH, LOCAL_FILE_PATH, fileName);
+      for (Consumer<Session> consumer : consumers) {
+        consumer.accept(session);
       }
 
       session.disconnect();
-      System.out.println("Session disconnected.");
+      log.info("Session disconnected.");
 
     } catch (Exception e) {
       onFailSession(e, session);
     }
   }
 
-  private String path(String folderPath, String fileName) {
+  public String path(String folderPath, String fileName) {
     return Paths.get(folderPath, fileName).toString();
   }
 
-  private void executeCommand(Session session, String command) throws JSchException, IOException {
+  public void executeCommand(Session session, String command) {
     ChannelExec channelExec = null;
     try {
       channelExec = (ChannelExec) session.openChannel("exec");
@@ -131,28 +113,26 @@ public class SSH {
       channelExec.setInputStream(null);
       channelExec.setErrStream(System.err);
 
+      @Cleanup
       InputStream in = channelExec.getInputStream();
       channelExec.connect();
 
-      System.out.println("Executing command: " + command);
+      log.info("Executing command: " + command);
 
       // Read command output
+      @Cleanup
       BufferedReader reader = new BufferedReader(new InputStreamReader(in));
       String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
+      while (Objects.nonNull(line = reader.readLine())) {
+        log.info(line);
       }
 
       // Wait until the command is done
       while (!channelExec.isClosed()) {
-        try {
-          Thread.sleep(500);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
+        Utils.sleepMiliSeconds(500);
       }
 
-      System.out.println("Command execution completed with exit status: " + channelExec.getExitStatus());
+      log.info("Command execution completed with exit status: " + channelExec.getExitStatus());
       channelExec.disconnect();
     } catch (Exception e) {
       onFailExec(e, channelExec);
@@ -160,17 +140,17 @@ public class SSH {
 
   }
 
-  private void transferFile(Session session, String remotePath, String localPath, String fileName) {
+  public void transferFile(Session session, String remotePath, String localPath, String fileName) {
 
     ChannelSftp channelSftp = null;
     try {
       channelSftp = (ChannelSftp) session.openChannel("sftp");
       channelSftp.connect();
 
-      System.out.println("Starting file transfer from: " + path(remotePath, fileName));
+      log.info("Starting file transfer from: " + path(remotePath, fileName));
       channelSftp.cd(remotePath);
       channelSftp.get(fileName, path(localPath, fileName));
-      System.out.println("File transferred successfully to: " + path(localPath, fileName));
+      log.info("File transferred successfully to: " + path(localPath, fileName));
       channelSftp.disconnect();
     } catch (Exception e) {
 
@@ -179,11 +159,12 @@ public class SSH {
 
   }
 
-  private void transferFileWithProgress(Session session, String remotePath, String localPath, String fileName)
-      throws JSchException, SftpException, IOException {
-    ChannelSftp channelSftp = (ChannelSftp) session.openChannel("sftp");
+  public void transferFileWithProgress(Session session, String remotePath, String localPath, String fileName) {
+    ChannelSftp channelSftp = null;
+
     File localFile = new File(path(localPath, fileName));
     try (OutputStream outputStream = new FileOutputStream(localFile)) {
+      channelSftp = (ChannelSftp) session.openChannel("sftp");
       channelSftp.connect();
 
       channelSftp.cd(remotePath);
@@ -191,13 +172,14 @@ public class SSH {
       long remoteFileSize = channelSftp.lstat(fileName).getSize();
 
       // Use a progress stream to track the progress
+      @Cleanup
       ProgressMonitorOutputStream progressStream = new ProgressMonitorOutputStream(outputStream, remoteFileSize);
 
-      System.out.println("Starting file transfer from: " + path(remotePath, fileName));
+      log.info("Starting file transfer from: " + path(remotePath, fileName));
 
       channelSftp.get(fileName, progressStream);
       progressStream.close(); // Close the stream after copying
-      System.out.println("File transferred successfully to: " + path(localPath, fileName));
+      log.info("File transferred successfully to: " + path(localPath, fileName));
 
       channelSftp.disconnect();
     } catch (Exception e) {
