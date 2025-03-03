@@ -11,6 +11,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.springframework.stereotype.Service;
+
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
@@ -22,8 +24,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Service
 @RequiredArgsConstructor
-public class SSH {
+public class SshService {
 
   private final SSHParams sshParams;
 
@@ -140,10 +143,10 @@ public class SSH {
   public void transferFile(Session session, String remotePath, String localPath, String fileName) {
 
     ChannelSftp channelSftp = null;
+    FileUtility.createFolder(localPath);
     try {
       channelSftp = (ChannelSftp) session.openChannel("sftp");
       channelSftp.connect();
-
       log.info("Starting file transfer from: " + path(remotePath, fileName));
       channelSftp.cd(remotePath);
       channelSftp.get(fileName, path(localPath, fileName));
@@ -158,7 +161,7 @@ public class SSH {
 
   public void transferFileWithProgress(Session session, String remotePath, String localPath, String fileName) {
     ChannelSftp channelSftp = null;
-
+    FileUtility.createFolder(localPath);
     File localFile = new File(path(localPath, fileName));
     try (OutputStream outputStream = new FileOutputStream(localFile)) {
       channelSftp = (ChannelSftp) session.openChannel("sftp");
