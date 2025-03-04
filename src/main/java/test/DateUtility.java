@@ -19,7 +19,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class DateUtility {
 
-  private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HHmmssddMMyyyy");
+  private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
   private static final ZoneId ZONE_AFRICA_CASABLANCA = ZoneId.of("Africa/Casablanca");
 

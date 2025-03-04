@@ -52,7 +52,7 @@ public class FileUtility {
   public boolean createFolder(String folderPath) {
 
     return Optional.ofNullable(folderPath)
-        .map(e -> createFolder(Paths.get(e)))
+        .map(e -> createFolder(Paths.get(e).normalize().toAbsolutePath()))
         .orElseGet(() -> Boolean.FALSE);
   }
 

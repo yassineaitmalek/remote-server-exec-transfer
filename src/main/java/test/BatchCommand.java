@@ -26,20 +26,19 @@ public class BatchCommand implements CommandLineRunner {
 
   private final SshService sshService;
 
-  public static final String REMOTE_FOLDER_PATH = "/path/to/remote/folder";
-  public static final String LOCAL_FILE_PATH = "/path/to/local/folder" + "/" + DateUtility.nameWithDate("GP");
+  private static final String REMOTE_FOLDER_PATH = "/path/to/remote/folder";
 
-  public static final List<String> FILE_NAMES = Arrays.asList(
-      "jenkins1.msi",
-      "jenkins2.msi",
-      "jenkins3.msi");
+  private static final String LOCAL_FILE_PATH = "./files" + "/" + DateUtility.nameWithDate("GP");
 
-  private static final String COMMAND = "sleep 30"; // Replace with the actual command
+  private static final List<String> FILE_NAMES = Arrays.asList("file.txt");
+
+  private static final String COMMAND = "cd /home/a/test && ./script.sh google.com 10"; // Replace with the actual
+                                                                                        // command
 
   @Override
   public void run(String... args) throws Exception {
 
-    Try.run(() -> execute()).onFailure(e -> log.error(e.getMessage(), e));
+    Try.run(this::execute).onFailure(e -> log.error(e.getMessage(), e));
 
     log.info("Shutting down application...");
     SpringApplication.exit(applicationContext, () -> 0);
@@ -50,7 +49,8 @@ public class BatchCommand implements CommandLineRunner {
     Consumer<Session> executeCommand = session -> sshService.executeCommand(session, COMMAND);
 
     Consumer<Session> transferFile = session -> FILE_NAMES.stream()
-        .forEach(e -> sshService.transferFileWithProgress(session, REMOTE_FOLDER_PATH, LOCAL_FILE_PATH, e));
+        .forEach(e -> sshService.transferFileWithProgress(session, REMOTE_FOLDER_PATH,
+            LOCAL_FILE_PATH, e));
 
     sshService.execute(executeCommand, transferFile);
   }

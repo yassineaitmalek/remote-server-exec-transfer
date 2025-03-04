@@ -69,7 +69,7 @@ public class SshService {
   public Session getSession() {
     try {
       JSch jsch = new JSch();
-      Session session = jsch.getSession(sshParams.getPassword(), sshParams.getRemoteHost(), sshParams.getPort());
+      Session session = jsch.getSession(sshParams.getUserName(), sshParams.getRemoteHost(), sshParams.getPort());
       session.setPassword(sshParams.getPassword());
       session.setConfig("StrictHostKeyChecking", "no");
       session.connect();
@@ -103,6 +103,10 @@ public class SshService {
 
   public String path(String folderPath, String fileName) {
     return Paths.get(folderPath, fileName).toString();
+  }
+
+  public String pathNorm(String folderPath, String fileName) {
+    return Paths.get(folderPath, fileName).normalize().toAbsolutePath().toString();
   }
 
   public void executeCommand(Session session, String command) {
@@ -149,8 +153,8 @@ public class SshService {
       channelSftp.connect();
       log.info("Starting file transfer from: " + path(remotePath, fileName));
       channelSftp.cd(remotePath);
-      channelSftp.get(fileName, path(localPath, fileName));
-      log.info("File transferred successfully to: " + path(localPath, fileName));
+      channelSftp.get(fileName, pathNorm(localPath, fileName));
+      log.info("File transferred successfully to: " + pathNorm(localPath, fileName));
       channelSftp.disconnect();
     } catch (Exception e) {
 
@@ -162,7 +166,7 @@ public class SshService {
   public void transferFileWithProgress(Session session, String remotePath, String localPath, String fileName) {
     ChannelSftp channelSftp = null;
     FileUtility.createFolder(localPath);
-    File localFile = new File(path(localPath, fileName));
+    File localFile = new File(pathNorm(localPath, fileName));
     try (OutputStream outputStream = new FileOutputStream(localFile)) {
       channelSftp = (ChannelSftp) session.openChannel("sftp");
       channelSftp.connect();
@@ -179,7 +183,7 @@ public class SshService {
 
       channelSftp.get(fileName, progressStream);
       progressStream.close(); // Close the stream after copying
-      log.info("File transferred successfully to: " + path(localPath, fileName));
+      log.info("File transferred successfully to: " + pathNorm(localPath, fileName));
 
       channelSftp.disconnect();
     } catch (Exception e) {
