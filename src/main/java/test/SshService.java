@@ -7,6 +7,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -82,16 +85,20 @@ public class SshService {
 
   }
 
-  public void execute(Consumer<Session>... consumers) {
+  @SafeVarargs
+  public final void execute(Consumer<Session>... consumers) {
+    execute(Arrays.asList(consumers));
+
+  }
+
+  public void execute(List<Consumer<Session>> consumers) {
 
     Session session = null;
     try {
 
       session = getSession();
 
-      for (Consumer<Session> consumer : consumers) {
-        consumer.accept(session);
-      }
+      execute(session, consumers);
 
       session.disconnect();
       log.info("Session disconnected.");
@@ -99,6 +106,16 @@ public class SshService {
     } catch (Exception e) {
       onFailSession(e, session);
     }
+  }
+
+  private void execute(Session session, List<Consumer<Session>> consumers) {
+
+    Optional.of(consumers)
+        .orElseGet(Collections::emptyList)
+        .stream()
+        .filter(Objects::nonNull)
+        .reduce(Consumer::andThen)
+        .ifPresent(consumer -> consumer.accept(session));
   }
 
   public String path(String folderPath, String fileName) {
